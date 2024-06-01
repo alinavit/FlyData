@@ -73,7 +73,6 @@ class FlyData:
                         accept_cookies = driver.find_element(By.CSS_SELECTOR, cookie_selector)
                         accept_cookies.click()
                         time.sleep(3)
-                # TODO maybe it can be done as a separate method? cookies selector
 
                 departures = driver.page_source
                 self.soup_dep = BeautifulSoup(departures, 'lxml')
@@ -763,6 +762,4 @@ class FlyDataWMI(FlyData):
         logger.info(f'Data gathered successfully for {"arrivals" if arrival else "departures"}')
         return data
 
-# TODO Warsaw  Warsaw Modlin
-# TODO Krakow
 # TODO remove visibility of chrome selenium
