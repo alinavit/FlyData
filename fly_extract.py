@@ -325,16 +325,17 @@ class FlyDataGDN(FlyData):
         # rows = table.find_all('div', class_='table__time')
 
         for row in table.find_all('div', class_='table__element'):
-            time = ''
+            date = ''
             direction = ''
             flight = ''
             status = ''
+            status_name = ''
 
             try:
-                time = row.find('div', class_='table__time').text
-                time = time.replace('\n', '')
+                date = row.find('div', class_='table__time').text
+                date = date.replace('\n', '')
             except AttributeError:
-                time = ''
+                date = ''
             except Exception as e:
                 logging.critical('An unexpected error occurred')
                 logging.exception(f'Exception: {e}')
@@ -375,7 +376,7 @@ class FlyDataGDN(FlyData):
                 logging.exception(f'Exception: {e}')
 
             if arrival:
-                data.append({'date': time,
+                data.append({'date': date,
                              'flight': flight,
                              'destination': self.pcode,
                              'status': status,
@@ -386,7 +387,7 @@ class FlyDataGDN(FlyData):
                              })
 
             else:
-                data.append({'date': time,
+                data.append({'date': date,
                              'flight': flight,
                              'destination': direction,
                              'status': status,
@@ -422,7 +423,7 @@ class FlyDataKTW(FlyData):
     def harvest_data(self, soup_section, arrival=True):
         data = []
 
-        time = ''
+        date = ''
         direction = ''
         flight = ''
         status = ''
@@ -431,9 +432,9 @@ class FlyDataKTW(FlyData):
 
         for i in table:
             try:
-                time = i.find('div', class_='timetable__col flight-board__col--1').text
+                date = i.find('div', class_='timetable__col flight-board__col--1').text
             except AttributeError:
-                time = ''
+                date = ''
             except Exception as e:
                 logging.critical('An unexpected error occurred')
                 logging.exception(f'Exception: {e}')
@@ -464,7 +465,7 @@ class FlyDataKTW(FlyData):
                 logging.exception(f'Exception: {e}')
 
             if arrival:
-                data.append({'date': time,
+                data.append({'date': date,
                              'flight': flight,
                              'destination': self.pcode,
                              'status': status,
@@ -475,7 +476,7 @@ class FlyDataKTW(FlyData):
                              })
 
             else:
-                data.append({'date': time,
+                data.append({'date': date,
                              'flight': flight,
                              'destination': direction,
                              'status': status,
@@ -510,7 +511,7 @@ class FlyDataPOZ(FlyData):
     def harvest_data(self, soup_section, arrival=True):
         data = []
 
-        time = ''
+        date = ''
         direction = ''
         flight = ''
         status = ''
@@ -520,10 +521,10 @@ class FlyDataPOZ(FlyData):
         for i in table:
             row = i.ul
             try:
-                time = row.div.text
-                time = time.replace('Godzina', '').replace('\n ', '').replace(' ', '')
+                date = row.div.text
+                date = date.replace('Godzina', '').replace('\n ', '').replace(' ', '')
             except AttributeError:
-                time = ''
+                date = ''
             except Exception as e:
                 logging.critical('An unexpected error occurred')
                 logging.exception(f'Exception: {e}')
@@ -556,7 +557,7 @@ class FlyDataPOZ(FlyData):
                 logging.exception(f'Exception: {e}')
 
             if arrival:
-                data.append({'date': time,
+                data.append({'date': date,
                              'flight': flight,
                              'destination': self.pcode,
                              'status': status,
@@ -567,7 +568,7 @@ class FlyDataPOZ(FlyData):
                              })
 
             else:
-                data.append({'date': time,
+                data.append({'date': date,
                              'flight': flight,
                              'destination': direction,
                              'status': status,
@@ -668,7 +669,7 @@ class FlyDataKRK(FlyData):
         for i in table:
             rows.append(i.text)
 
-        rows = [re.sub('\n+|\s{2,}', '|', i) for i in rows if i != '\n']
+        rows = [re.sub(r'\n+|\s{2,}', '|', i) for i in rows if i != '\n']
         rows = [i.split('|') for i in rows]
 
         for row in rows:
@@ -694,9 +695,74 @@ class FlyDataKRK(FlyData):
                              })
         return data
 
-# TODO Warsaw Chopin
-# TODO Warsaw Modlin
+
+class FlyDataWMI(FlyData):
+    """
+     url = General URL (provide if one url is responsible for all extract)
+     default arr [default True] = case when one url and from there we have to click and switch to another data
+     default_arr = True means first we come to arrival data, False - to departures data
+     switch selector [default None] - selector to switch to another data
+     url_arr = URL of Arrivals
+     url_dep = URL of Departures
+     selenium = True , selenium is going to e used , if False  - requests is going to be used
+     cookies selector = For selenium Only. Selector to accept cookies
+     pcode = Airport code , is going to be used in the file
+
+     """
+
+    def __init__(self, url=None, default_arr=True, switch_selector=None, url_arr=None, url_dep=None, selenium=False,
+                 cookies_selector=None, pcode='UNKNOWN'):
+        super().__init__(url, default_arr, switch_selector, url_arr, url_dep, selenium, cookies_selector, pcode)
+
+        self.soup = None
+        self.soup_arr = None
+        self.soup_dep = None
+
+    def harvest_data(self, soup_section, arrival=True):
+
+        data = []
+
+        if arrival:
+            table_arr = soup_section.find('table', 'arrivals-table active')
+
+            for idx, tr in enumerate(table_arr.find_all('tr')):
+
+                if idx != 0:
+                    row = [i.text for i in tr]
+
+                    data.append(
+                        {'date': row[2],
+                         'flight': row[0],
+                         'destination': self.pcode,
+                         'status': row[3],
+                         'start_airport': row[2],
+                         'time_reg': datetime.today().strftime("%m/%d/%Y, %H:%M:%S"),
+                         'type': 'arrival_data'
+
+                         }
+                    )
+
+        else:
+            table_dep = soup_section.find('table', 'departures-table')
+
+            for idx, tr in enumerate(table_dep.find_all('tr')):
+                if idx != 0:
+                    row = [i.text for i in tr]
+
+                    data.append(
+                        {'date': row[2],
+                         'flight': row[0],
+                         'destination': row[2],
+                         'status': row[3],
+                         'start_airport': self.pcode,
+                         'time_reg': datetime.today().strftime("%m/%d/%Y, %H:%M:%S"),
+                         'type': 'departure_data'
+                         }
+                    )
+
+        logger.info(f'Data gathered successfully for {"arrivals" if arrival else "departures"}')
+        return data
+
+# TODO Warsaw  Warsaw Modlin
 # TODO Krakow
-
 # TODO remove visibility of chrome selenium
-
