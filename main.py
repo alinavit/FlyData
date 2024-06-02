@@ -99,11 +99,10 @@ if any(check_wmi):
 stop = default_timer()
 print(stop-start)
 
-# TODO web monitor
+
 # TODO postgres
 # TODO Schedule
 # TODO What are the next steps? Analysis?
 
-# TODO fix: status GDN doesnt appear
-# TODO fix: logging for each file separate? check logic
+# TODO optimize: page assessment runs double, change to one
 # TODO add data validation

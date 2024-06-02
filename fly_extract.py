@@ -363,6 +363,7 @@ class FlyDataGDN(FlyData):
                     if 'table__status' in parameter['class']:
                         status_name = parameter['class']
                         status_name = ' '.join(status_name)
+                        break
                     else:
                         status_name = ''
 
