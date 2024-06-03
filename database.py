@@ -7,7 +7,7 @@ logger = logging.getLogger('databaseLogger')
 
 
 class FlyDatabase:
-    def __init__(self, source: str, data: dict):
+    def __init__(self, source: str, data):
         self.source = source
         self.data = data
         self.host = db_info.HOST
@@ -40,47 +40,53 @@ class FlyDatabase:
             logger.info(f'Cannot disconnect. {self.database} is already disconnected')
 
     def write(self):
-        sql_values = set()
-        sql_statement = '''
-                            INSERT INTO data_m (
-                                                load_id,
-                                                source, 
-                                                reg_timestamp, 
-                                                f_time, 
-                                                f_flight, 
-                                                f_start_airport, 
-                                                f_dest_airport, 
-                                                f_state
-                                                )
-                                        VALUES (
-                                                nextval('load_id_seq'),
-                                                %s,
-                                                CURRENT_TIMESTAMP,
-                                                %s,
-                                                %s,
-                                                %s,
-                                                %s,
-                                                %s
-                                                )                                      
-        '''
-        try:
-            sql_values = (self.source,
-                          self.data['date'],
-                          self.data['flight'],
-                          self.data['start_airport'],
-                          self.data['destination'],
-                          self.data['status']
-                          )
-        except Exception as e:
-            logger.critical('Values given are not valid')
-            logger.exception(f'Exception : {e}')
+        self.connect()
 
-        try:
-            self.cur.execute(sql_statement, sql_values)
-            self.conn.commit()
-        except Exception as e:
-            print(f"Error: {e}")
-            self.conn.rollback()  # Rollback changes if an error occurs
-        finally:
-            self.conn.close()
+        for i in self.data:
+            if isinstance(i, dict):
+                sql_statement = '''
+                                    INSERT INTO data_m (
+                                                        load_id,
+                                                        source, 
+                                                        reg_timestamp, 
+                                                        f_time, 
+                                                        f_flight, 
+                                                        f_start_airport, 
+                                                        f_dest_airport, 
+                                                        f_state
+                                                        )
+                                                VALUES (
+                                                        nextval('load_id_seq'),
+                                                        %s,
+                                                        CURRENT_TIMESTAMP,
+                                                        %s,
+                                                        %s,
+                                                        %s,
+                                                        %s,
+                                                        %s
+                                                        )                                      
+                '''
+                try:
+                    sql_values = (self.source,
+                                  i['date'],
+                                  i['flight'],
+                                  i['start_airport'],
+                                  i['destination'],
+                                  i['status']
+                                  )
+                except KeyError as e:
+                    logger.critical('KeyError: Missing key in data dictionary')
+                    logger.exception(f'Exception : {e}')
+                    continue
 
+                try:
+                    self.cur.execute(sql_statement, sql_values)
+                    self.conn.commit()
+                except Exception as e:
+                    logger.critical('Error executing SQL statement')
+                    logger.exception(f'Exception: {e}')
+                    self.conn.rollback()
+            else:
+                logger.warning('Data provided unexpectedly. The data has to be a list of dictionaries.')
+
+        self.conn.close()
