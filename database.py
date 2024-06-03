@@ -1,0 +1,86 @@
+import psycopg2
+import db_info
+import logging.config
+
+logging.config.fileConfig("C:\\Users\\48575\\PycharmProjects\\FlyData2\\conf\\logging.conf")
+logger = logging.getLogger('databaseLogger')
+
+
+class FlyDatabase:
+    def __init__(self, source: str, data: dict):
+        self.source = source
+        self.data = data
+        self.host = db_info.HOST
+        self.database = db_info.DATABASE
+        self.user = db_info.USER
+        self.password = db_info.PASSWORD
+        self.conn = None
+        self.cur = None
+
+    def connect(self):
+        try:
+            self.conn = psycopg2.connect(
+                host=self.host,
+                database=self.database,
+                user=self.user,
+                password=self.password
+            )
+
+            self.cur = self.conn.cursor()
+            logger.info(f'Connected to {self.database} database')
+        except Exception as e:
+            logger.critical(f'Error in connection to {self.database}')
+            logger.exception(f'Exception {e}')
+
+    def disconnect(self):
+        if self.conn.closed == 0:
+            self.conn.close()
+            logger.info(f'Disconnected from {self.database} database')
+        else:
+            logger.info(f'Cannot disconnect. {self.database} is already disconnected')
+
+    def write(self):
+        sql_values = set()
+        sql_statement = '''
+                            INSERT INTO data_m (
+                                                load_id,
+                                                source, 
+                                                reg_timestamp, 
+                                                f_time, 
+                                                f_flight, 
+                                                f_start_airport, 
+                                                f_dest_airport, 
+                                                f_state
+                                                )
+                                        VALUES (
+                                                nextval('load_id_seq'),
+                                                %s,
+                                                CURRENT_TIMESTAMP,
+                                                %s,
+                                                %s,
+                                                %s,
+                                                %s,
+                                                %s
+                                                )                                      
+        '''
+        try:
+            sql_values = (self.source,
+                          self.data['date'],
+                          self.data['flight'],
+                          self.data['start_airport'],
+                          self.data['destination'],
+                          self.data['status']
+                          )
+        except Exception as e:
+            logger.critical('Values given are not valid')
+            logger.exception(f'Exception : {e}')
+
+        try:
+            self.cur.execute(sql_statement, sql_values)
+            self.conn.commit()
+        except Exception as e:
+            print(f"Error: {e}")
+            self.conn.rollback()  # Rollback changes if an error occurs
+        finally:
+            self.conn.close()
+
