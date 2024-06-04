@@ -75,14 +75,25 @@ class FlyDatabase:
                                   i['status']
                                   )
                 except KeyError as e:
-                    logger.critical('KeyError: Missing key in data dictionary')
-                    logger.exception(f'Exception : {e}')
+                    with open(f'files\\error_rows_{self.source}.txt', 'a+', encoding='utf-8') as file:
+                        file.write(str(i) + '\n')
+                        logger.critical('KeyError: Missing key in data dictionary')
+                        logger.exception(f'Exception : {e}')
                     continue
+                except Exception as e:
+                    with open(f'files\\error_rows_{self.source}.txt', 'a+', encoding='utf-8') as file:
+                        file.write(str(i) + '\n')
+                    logger.critical('Error: Something wrong with the data. Values stored to ')
+                    logger.exception(f'Exception : {e}')
 
                 try:
                     self.cur.execute(sql_statement, sql_values)
                     self.conn.commit()
+
                 except Exception as e:
+                    with open(f'files\\error_rows_{self.source}.txt', 'a+', encoding='utf-8') as file:
+                        file.write(str(sql_values) + '\n')
+
                     logger.critical('Error executing SQL statement')
                     logger.exception(f'Exception: {e}')
                     self.conn.rollback()
