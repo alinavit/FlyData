@@ -5,6 +5,8 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import time
 
+import database
+
 logging.config.fileConfig("C:\\Users\\48575\\PycharmProjects\\FlyData\\conf\\logging.conf")
 logger = logging.getLogger('DataTransferCSV')
 
@@ -188,6 +190,9 @@ class FlyData:
         if self.soup_arr and self.soup_dep:
             arrivals = self.harvest_data(self.soup_arr)
             departures = self.harvest_data(self.soup_dep, arrival=False)
+
+            database.FlyDatabase(source=self.pcode, data=arrivals).write()
+            database.FlyDatabase(source=self.pcode, data=departures).write()
 
             df_arr = pd.DataFrame(arrivals)
             df_dep = pd.DataFrame(departures)
