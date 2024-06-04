@@ -61,9 +61,5 @@ stop = default_timer()
 print(stop-start)
 
 
-# TODO postgres
-# TODO Schedule
-# TODO What are the next steps? Analysis?
 
-# TODO optimize: page assessment runs double, change to one
-# TODO add data validation
+# TODO Schedule

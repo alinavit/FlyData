@@ -191,18 +191,13 @@ class FlyData:
             arrivals = self.harvest_data(self.soup_arr)
             departures = self.harvest_data(self.soup_dep, arrival=False)
 
-            database.FlyDatabase(source=self.pcode, data=arrivals).write()
-            database.FlyDatabase(source=self.pcode, data=departures).write()
-
-            df_arr = pd.DataFrame(arrivals)
-            df_dep = pd.DataFrame(departures)
-
-            df_all = pd.concat([df_arr, df_dep], ignore_index=True)
-
-            date = datetime.today().strftime("%m_%d_%Y_%H_%M_%S")
-            filename = f'files\\{self.pcode}_{date}.csv'
-            df_all.to_csv(filename, index=False)
-            logger.info(f'Data successfully saved to CSV file: {filename}')
+            try:
+                database.FlyDatabase(source=self.pcode, data=arrivals).write()
+                database.FlyDatabase(source=self.pcode, data=departures).write()
+                logger.info(f'Data successfully saved to database. Source: {self.pcode}')
+            except Exception as e:
+                logger.critical(f'Issue saving data to db. Source: {self.pcode}')
+                logger.exception(f'Exception: {e}')
 
         elif not self.soup_arr or not self.soup_dep:
             logger.warning('arrivals or departures were not fetched. No data to process or save')
