@@ -44,6 +44,7 @@ class FlyData:
         from selenium.webdriver.chrome.service import Service
         from webdriver_manager.chrome import ChromeDriverManager
         from selenium.webdriver.common.by import By
+        from selenium.webdriver.chrome.options import Options
 
         # case when 2 links
         if self.url and (self.url_arr or self.url_dep):
@@ -52,7 +53,9 @@ class FlyData:
         elif self.url_arr and self.url_dep and not self.url:
             try:
                 # arrivals
-                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+                options = Options()
+                options.add_argument('--headless')
+                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
                 driver.get(self.url_arr)
                 driver.implicitly_wait(10)
 
@@ -66,7 +69,7 @@ class FlyData:
                 self.soup_arr = BeautifulSoup(arrivals, 'lxml')
 
                 # departures
-                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
                 driver.get(self.url_dep)
                 driver.implicitly_wait(10)
 
@@ -87,8 +90,9 @@ class FlyData:
 
         # case when one link
         elif self.url and not self.url_arr and not self.url_dep:
-
-            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+            options = Options()
+            options.add_argument('--headless')
+            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
             driver.get(self.url)
             time.sleep(3)
 
