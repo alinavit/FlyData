@@ -59,7 +59,3 @@ gatherer_wmi.etl_csv()
 
 stop = default_timer()
 print(stop-start)
-
-
-
-# TODO Schedule

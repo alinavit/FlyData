@@ -767,4 +767,3 @@ class FlyDataWMI(FlyData):
         logger.info(f'Data gathered successfully for {"arrivals" if arrival else "departures"}')
         return data
 
-# TODO remove visibility of chrome selenium
