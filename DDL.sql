@@ -5,8 +5,6 @@
 -- Dumped from database version 14.1
 -- Dumped by pg_dump version 14.1
 
--- Started on 2024-06-06 17:30:29
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -19,7 +17,6 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 212 (class 1255 OID 45264)
 -- Name: clean_data_m(); Type: PROCEDURE; Schema: public; Owner: postgres
 --
 
@@ -27,7 +24,7 @@ CREATE PROCEDURE public.clean_data_m()
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    INSERT INTO DATA_HST SELECT * FROM DATA_M;
+    INSERT INTO DATA_HST SELECT * FROM DATA_M ON CONFLICT DO NOTHING;
     DELETE FROM DATA_M WHERE reg_timestamp < CURRENT_DATE;
 END;
 $$;
@@ -40,7 +37,6 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- TOC entry 211 (class 1259 OID 45247)
 -- Name: data_hst; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -59,7 +55,6 @@ CREATE TABLE public.data_hst (
 ALTER TABLE public.data_hst OWNER TO postgres;
 
 --
--- TOC entry 209 (class 1259 OID 45235)
 -- Name: data_m; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -78,7 +73,6 @@ CREATE TABLE public.data_m (
 ALTER TABLE public.data_m OWNER TO postgres;
 
 --
--- TOC entry 210 (class 1259 OID 45238)
 -- Name: load_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -93,7 +87,53 @@ CREATE SEQUENCE public.load_id_seq
 ALTER TABLE public.load_id_seq OWNER TO postgres;
 
 --
--- TOC entry 3172 (class 2606 OID 45256)
+-- Name: v_data_m; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.v_data_m AS
+ SELECT data_m.load_id,
+        CASE data_m.source
+            WHEN 'KTW'::bpchar THEN 'Katowice'::text
+            WHEN 'SZZ'::bpchar THEN 'Szczecin'::text
+            WHEN 'WMI'::bpchar THEN 'Warsaw Modlin'::text
+            WHEN 'KRK'::bpchar THEN 'Kraków'::text
+            WHEN 'POZ'::bpchar THEN 'Poznań'::text
+            WHEN 'LCJ'::bpchar THEN 'Łódż'::text
+            WHEN 'GDN'::bpchar THEN 'Gdańsk'::text
+            ELSE NULL::text
+        END AS source,
+    data_m.reg_timestamp,
+    data_m.f_time,
+    data_m.f_flight,
+        CASE data_m.f_start_airport
+            WHEN 'KTW'::text THEN 'Katowice'::character varying
+            WHEN 'SZZ'::text THEN 'Szczecin'::character varying
+            WHEN 'WMI'::text THEN 'Warsaw Modlin'::character varying
+            WHEN 'KRK'::text THEN 'Kraków'::character varying
+            WHEN 'POZ'::text THEN 'Poznań'::character varying
+            WHEN 'LCJ'::text THEN 'Łódż'::character varying
+            WHEN 'GDN'::text THEN 'Gdańsk'::character varying
+            ELSE data_m.f_start_airport
+        END AS f_start_airport,
+        CASE data_m.f_dest_airport
+            WHEN 'KTW'::text THEN 'Katowice'::character varying
+            WHEN 'SZZ'::text THEN 'Szczecin'::character varying
+            WHEN 'WMI'::text THEN 'Warsaw Modlin'::character varying
+            WHEN 'KRK'::text THEN 'Kraków'::character varying
+            WHEN 'POZ'::text THEN 'Poznań'::character varying
+            WHEN 'LCJ'::text THEN 'Łódż'::character varying
+            WHEN 'GDN'::text THEN 'Gdańsk'::character varying
+            ELSE data_m.f_dest_airport
+        END AS f_dest_airport,
+    replace((data_m.f_state)::text, 'Flight details'::text, ''::text) AS f_state
+   FROM public.data_m
+  WHERE ((data_m.f_flight IS NOT NULL) AND ((data_m.f_flight)::text <> ''::text) AND (to_char(data_m.reg_timestamp, 'YYYYMMDDHH24MM'::text) = ( SELECT to_char(max(data_m_1.reg_timestamp), 'YYYYMMDDHH24MM'::text) AS to_char
+           FROM public.data_m data_m_1)));
+
+
+ALTER TABLE public.v_data_m OWNER TO postgres;
+
+--
 -- Name: data_hst data_hst_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -102,15 +142,12 @@ ALTER TABLE ONLY public.data_hst
 
 
 --
--- TOC entry 3170 (class 2606 OID 45258)
 -- Name: data_m data_m_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.data_m
     ADD CONSTRAINT data_m_pk PRIMARY KEY (load_id);
 
-
--- Completed on 2024-06-06 17:30:29
 
 --
 -- PostgreSQL database dump complete
